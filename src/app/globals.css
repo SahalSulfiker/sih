@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+:root {
+  /* Base surfaces */
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+
+  /* Ink */
+  --color-ink-900: #10151f;
+  --color-ink-700: #333c4d;
+  --color-ink-500: #5b6577;
+  --color-ink-400: #7c869a;
+  --color-ink-300: #a6afbf;
+
+  /* Borders */
+  --color-border: #e2e6ec;
+  --color-border-strong: #cbd2de;
+
+  /* Brand */
+  --color-marine-900: #0e2a52;
+  --color-marine-700: #1e4b8c;
+  --color-marine-500: #2f66b3;
+  --color-marine-100: #e8eefb;
+
+  --color-tide-600: #0e7c86;
+  --color-tide-100: #e1f3f3;
+
+  /* Semantic */
+  --color-positive-700: #146c3e;
+  --color-positive-600: #1a7f4b;
+  --color-positive-100: #e5f5ec;
+
+  --color-caution-700: #9a5a05;
+  --color-caution-600: #b45f06;
+  --color-caution-100: #fbf0dd;
+
+  --color-critical-700: #a12822;
+  --color-critical-600: #c1342e;
+  --color-critical-100: #fbe8e7;
+
+  --font-body: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, ui-sans-serif, sans-serif;
+  --font-data: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+}
+
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+
+  --color-ink-900: var(--color-ink-900);
+  --color-ink-700: var(--color-ink-700);
+  --color-ink-500: var(--color-ink-500);
+  --color-ink-400: var(--color-ink-400);
+  --color-ink-300: var(--color-ink-300);
+
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-marine-900: var(--color-marine-900);
+  --color-marine-700: var(--color-marine-700);
+  --color-marine-500: var(--color-marine-500);
+  --color-marine-100: var(--color-marine-100);
+
+  --color-tide-600: var(--color-tide-600);
+  --color-tide-100: var(--color-tide-100);
+
+  --color-positive-700: var(--color-positive-700);
+  --color-positive-600: var(--color-positive-600);
+  --color-positive-100: var(--color-positive-100);
+
+  --color-caution-700: var(--color-caution-700);
+  --color-caution-600: var(--color-caution-600);
+  --color-caution-100: var(--color-caution-100);
+
+  --color-critical-700: var(--color-critical-700);
+  --color-critical-600: var(--color-critical-600);
+  --color-critical-100: var(--color-critical-100);
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-data);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink-900);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-marine-100);
+  color: var(--color-marine-900);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-marine-500);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.num {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 320ms ease-out both;
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-check-pop {
+  animation: check-pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
