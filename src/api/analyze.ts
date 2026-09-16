@@ -80,8 +80,31 @@ export async function analyzeVoyage(
   }
 
   if (!res.ok) {
+    let message = "Unable to analyze this voyage. Please try again.";
+
+    try {
+      const errorData = (await res.json()) as {
+        detail?: string | { message?: string };
+        message?: string;
+      };
+
+      if (typeof errorData.detail === "string") {
+        message = errorData.detail;
+      } else if (
+        errorData.detail &&
+        typeof errorData.detail === "object" &&
+        typeof errorData.detail.message === "string"
+      ) {
+        message = errorData.detail.message;
+      } else if (typeof errorData.message === "string") {
+        message = errorData.message;
+      }
+    } catch {
+      // Keep the generic message if the backend does not return JSON.
+    }
+
     throw new AnalyzeApiError(
-      "Unable to analyze this voyage. Please try again.",
+      message,
       `http_${res.status}`
     );
   }

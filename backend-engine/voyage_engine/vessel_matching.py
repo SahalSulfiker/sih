@@ -110,6 +110,22 @@ def find_compatible_vessels(
         if result["compatible"]:
             compatible_vessels.append(result)
 
+    if not compatible_vessels:
+        return {
+            "success": False,
+            "request_id": request["request_id"],
+            "origin_port": request["origin_port"],
+            "destination_port": request["destination_port"],
+            "cargo_quantity_tonnes": request["quantity_tonnes"],
+            "error": (
+                f"No compatible vessels found for "
+                f"{request['quantity_tonnes']:,.0f} MT on this route. "
+                "The available vessels do not satisfy the cargo capacity "
+                "and/or port size constraints."
+            ),
+            "vessels": []
+        }
+
     return {
         "success": True,
         "request_id": request["request_id"],

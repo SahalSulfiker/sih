@@ -123,9 +123,15 @@ def rank_vessels(request, vessels, origins, destinations, distances, freight):
     ].copy()
 
     if freight_match.empty:
+        vessel_types = ", ".join(
+            v["vessel_type"] for v in matching_result["vessels"]
+        )
         return {
             "success": False,
-            "error": "Freight data not found for this route.",
+            "error": (
+                "No freight data is available for the compatible vessel types "
+                f"({vessel_types}) on this route."
+            ),
             "vessels": []
         }
 
