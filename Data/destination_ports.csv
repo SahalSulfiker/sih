@@ -1,0 +1,8 @@
+port,max_draft_m,max_loa_m,max_beam_m,cargo_handling_rate_tpd,berths_drybulk,lat,lon
+Paradip,18.1,290,45.0,40000,4,20.31,86.67
+Visakhapatnam,17.0,280,44.0,35000,5,17.68,83.27
+Gangavaram,18.5,300,48.0,38000,3,17.62,83.23
+Gopalpur,15.0,230,36.0,22000,1,19.27,84.98
+Dhamra,18.0,300,48.0,36000,3,20.79,86.98
+Sagar-Sandheads,13.0,230,32.3,18000,1,21.65,88.05
+Haldia,8.5,186,30.0,15000,2,22.03,88.11

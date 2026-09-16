@@ -1,0 +1,31 @@
+request_id,cargo_type,quantity_tonnes,origin_port,origin_country,destination_port,required_by_date
+REQ1000,Thermal Coal,55000,Gladstone,Australia,Gopalpur,2025-03-13
+REQ1001,Coking Coal,75000,New Orleans,USA,Paradip,2025-11-17
+REQ1002,Thermal Coal,55000,Vostochny,Russia,Sagar-Sandheads,2025-10-14
+REQ1003,Iron Ore Fines,35000,Balikpapan,Indonesia,Gopalpur,2025-06-23
+REQ1004,Thermal Coal,75000,Gladstone,Australia,Visakhapatnam,2025-11-27
+REQ1005,Coking Coal,35000,New Orleans,USA,Dhamra,2025-06-18
+REQ1006,Iron Ore Fines,75000,Newcastle,Australia,Gopalpur,2025-10-18
+REQ1007,Limestone,55000,Newcastle,Australia,Gangavaram,2025-04-16
+REQ1008,Thermal Coal,55000,Norfolk,USA,Visakhapatnam,2025-01-24
+REQ1009,Iron Ore Fines,150000,New Orleans,USA,Paradip,2025-04-22
+REQ1010,Coking Coal,150000,Newcastle,Australia,Gangavaram,2025-06-28
+REQ1011,Iron Ore Fines,150000,Gladstone,Australia,Gopalpur,2025-09-07
+REQ1012,Limestone,150000,Newcastle,Australia,Gangavaram,2025-12-07
+REQ1013,Thermal Coal,35000,Newcastle,Australia,Sagar-Sandheads,2024-12-30
+REQ1014,Limestone,75000,Vostochny,Russia,Paradip,2025-05-29
+REQ1015,Iron Ore Fines,150000,Nacala,Mozambique,Gopalpur,2025-02-14
+REQ1016,Limestone,35000,Balikpapan,Indonesia,Gopalpur,2025-06-19
+REQ1017,Limestone,55000,Norfolk,USA,Sagar-Sandheads,2024-12-21
+REQ1018,Limestone,75000,Balikpapan,Indonesia,Gangavaram,2025-04-23
+REQ1019,Iron Ore Fines,75000,Newcastle,Australia,Dhamra,2024-12-13
+REQ1020,Thermal Coal,75000,Beira,Mozambique,Gangavaram,2025-03-19
+REQ1021,Iron Ore Fines,150000,Vostochny,Russia,Visakhapatnam,2025-01-15
+REQ1022,Limestone,75000,Beira,Mozambique,Gopalpur,2024-12-19
+REQ1023,Coking Coal,35000,Norfolk,USA,Paradip,2025-05-04
+REQ1024,Thermal Coal,35000,Beira,Mozambique,Sagar-Sandheads,2025-12-17
+REQ1025,Iron Ore Fines,55000,Balikpapan,Indonesia,Haldia,2025-03-29
+REQ1026,Coking Coal,35000,Balikpapan,Indonesia,Paradip,2025-11-20
+REQ1027,Iron Ore Fines,55000,Norfolk,USA,Haldia,2025-11-18
+REQ1028,Coking Coal,55000,Nacala,Mozambique,Paradip,2025-02-25
+REQ1029,Iron Ore Fines,35000,Beira,Mozambique,Paradip,2025-06-16
