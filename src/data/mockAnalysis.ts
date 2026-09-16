@@ -63,7 +63,7 @@ export const baseMockAnalysis: AnalysisResponse = {
     { port: "gangavaram", total_cost_cr: 93, waiting_hours: 12, risk: "low", recommended: true },
     { port: "dhamra", total_cost_cr: 96, waiting_hours: 20, risk: "low", recommended: false },
     { port: "paradip", total_cost_cr: 100, waiting_hours: 38, risk: "moderate", recommended: false },
-    { port: "haldia", total_cost_cr: 104, waiting_hours: 46, risk: "moderate", recommended: false },
+    { port: "gopalpur", total_cost_cr: 104, waiting_hours: 46, risk: "moderate", recommended: false },
   ],
   charter_strategy: [
     { type: "spot", estimated_cost_cr: 100, recommended: false },
@@ -145,8 +145,9 @@ export function buildMockAnalysis(request: AnalyzeRequest): AnalysisResponse {
     gangavaram: 1,
     dhamra: 1.03,
     paradip: 1.075,
-    haldia: 1.12,
+    gopalpur: 1.12,
     vizag: 1.05,
+    sagar_sandheads: 1.18,
   };
   const baseCost = 93 * scaleFactor * portRates[request.destination_port];
 
@@ -180,7 +181,7 @@ export function buildMockAnalysis(request: AnalyzeRequest): AnalysisResponse {
     };
   });
 
-  const ports: DestinationPort[] = ["gangavaram", "dhamra", "paradip", "haldia"];
+  const ports: DestinationPort[] = ["gangavaram", "dhamra", "paradip", "gopalpur"];
   const port_comparison = ports
     .map((port, i) => ({
       port,

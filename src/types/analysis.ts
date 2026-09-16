@@ -8,12 +8,16 @@ export type CargoType = "coal" | "iron_ore" | "grain" | "other";
 
 export type Origin = "australia" | "other";
 
+// Haldia is intentionally excluded: its max draft (8.5m) is too shallow for
+// every vessel type in the fleet dataset (smallest, Handysize, needs 11.5m),
+// so it can never produce a valid analysis with the current data.
 export type DestinationPort =
   | "paradip"
   | "gangavaram"
-  | "haldia"
   | "dhamra"
-  | "vizag";
+  | "vizag"
+  | "gopalpur"
+  | "sagar_sandheads";
 
 export type ContractPreference =
   | "spot"

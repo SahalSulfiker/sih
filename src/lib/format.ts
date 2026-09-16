@@ -52,9 +52,10 @@ export const originLabels: Record<Origin, string> = {
 export const portLabels: Record<DestinationPort, string> = {
   paradip: "Paradip",
   gangavaram: "Gangavaram",
-  haldia: "Haldia",
   dhamra: "Dhamra",
   vizag: "Visakhapatnam",
+  gopalpur: "Gopalpur",
+  sagar_sandheads: "Sagar Sandheads",
 };
 
 export const contractLabels: Record<CharterType, string> = {

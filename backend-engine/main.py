@@ -54,12 +54,16 @@ ORIGIN_COUNTRY_BY_PORT = {
     "New Orleans": "USA",
 }
 
+# Haldia is deliberately left out: its 8.5m draft is too shallow for every
+# vessel in the fleet dataset (smallest, Handysize, needs 11.5m) so it can
+# never return a valid analysis. See backend-engine/README.md.
 DESTINATION_PORT_MAP = {
     "paradip": "Paradip",
     "gangavaram": "Gangavaram",
-    "haldia": "Haldia",
     "dhamra": "Dhamra",
     "vizag": "Visakhapatnam",
+    "gopalpur": "Gopalpur",
+    "sagar_sandheads": "Sagar-Sandheads",
 }
 DESTINATION_PORT_MAP_REVERSE = {v: k for k, v in DESTINATION_PORT_MAP.items()}
 CANDIDATE_DESTINATIONS = list(DESTINATION_PORT_MAP.values())
