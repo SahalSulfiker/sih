@@ -1,0 +1,10 @@
+origin_country,port,max_draft_m,cargo_handling_rate_tpd,lat,lon
+Australia,Newcastle,15.2,60000,-32.93,151.78
+Australia,Gladstone,15.0,50000,-23.85,151.25
+USA,Norfolk,15.5,45000,36.85,-76.3
+USA,New Orleans,13.7,40000,29.95,-90.07
+Mozambique,Nacala,16.5,30000,-14.57,40.68
+Mozambique,Beira,9.5,20000,-19.84,34.85
+Russia,Vostochny,16.5,35000,42.76,133.09
+Indonesia,Samarinda,12.0,25000,-0.5,117.15
+Indonesia,Balikpapan,14.0,28000,-1.27,116.83

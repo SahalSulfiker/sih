@@ -1,0 +1,5 @@
+vessel_type,dwt_min,dwt_max,max_loa_m,max_beam_m,max_draft_m,typical_speed_knots
+Handysize,10000,40000,190,32.3,11.5,13.0
+Supramax,40000,60000,200,32.3,12.5,13.5
+Panamax,60000,80000,229,32.3,14.0,14.0
+Capesize,80000,180000,300,50.0,18.0,14.5

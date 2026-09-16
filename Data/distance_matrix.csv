@@ -1,0 +1,64 @@
+origin_port,origin_country,destination_port,distance_nm
+Newcastle,Australia,Paradip,6201
+Newcastle,Australia,Visakhapatnam,6092
+Newcastle,Australia,Gangavaram,6004
+Newcastle,Australia,Gopalpur,6141
+Newcastle,Australia,Dhamra,6250
+Newcastle,Australia,Sagar-Sandheads,6420
+Newcastle,Australia,Haldia,6552
+Gladstone,Australia,Paradip,6636
+Gladstone,Australia,Visakhapatnam,6474
+Gladstone,Australia,Gangavaram,6464
+Gladstone,Australia,Gopalpur,6557
+Gladstone,Australia,Dhamra,6689
+Gladstone,Australia,Sagar-Sandheads,6823
+Gladstone,Australia,Haldia,6872
+Norfolk,USA,Paradip,10171
+Norfolk,USA,Visakhapatnam,10052
+Norfolk,USA,Gangavaram,9991
+Norfolk,USA,Gopalpur,10157
+Norfolk,USA,Dhamra,10219
+Norfolk,USA,Sagar-Sandheads,10437
+Norfolk,USA,Haldia,10471
+New Orleans,USA,Paradip,11213
+New Orleans,USA,Visakhapatnam,11059
+New Orleans,USA,Gangavaram,11010
+New Orleans,USA,Gopalpur,11102
+New Orleans,USA,Dhamra,11265
+New Orleans,USA,Sagar-Sandheads,11457
+New Orleans,USA,Haldia,11491
+Nacala,Mozambique,Paradip,3138
+Nacala,Mozambique,Visakhapatnam,2948
+Nacala,Mozambique,Gangavaram,2980
+Nacala,Mozambique,Gopalpur,3028
+Nacala,Mozambique,Dhamra,3131
+Nacala,Mozambique,Sagar-Sandheads,3391
+Nacala,Mozambique,Haldia,3429
+Beira,Mozambique,Paradip,3329
+Beira,Mozambique,Visakhapatnam,3114
+Beira,Mozambique,Gangavaram,3151
+Beira,Mozambique,Gopalpur,3231
+Beira,Mozambique,Dhamra,3336
+Beira,Mozambique,Sagar-Sandheads,3561
+Beira,Mozambique,Haldia,3620
+Vostochny,Russia,Paradip,5204
+Vostochny,Russia,Visakhapatnam,5063
+Vostochny,Russia,Gangavaram,4992
+Vostochny,Russia,Gopalpur,5120
+Vostochny,Russia,Dhamra,5196
+Vostochny,Russia,Sagar-Sandheads,5420
+Vostochny,Russia,Haldia,5542
+Samarinda,Indonesia,Paradip,2588
+Samarinda,Indonesia,Visakhapatnam,2417
+Samarinda,Indonesia,Gangavaram,2393
+Samarinda,Indonesia,Gopalpur,2558
+Samarinda,Indonesia,Dhamra,2649
+Samarinda,Indonesia,Sagar-Sandheads,2813
+Samarinda,Indonesia,Haldia,2878
+Balikpapan,Indonesia,Paradip,2539
+Balikpapan,Indonesia,Visakhapatnam,2352
+Balikpapan,Indonesia,Gangavaram,2291
+Balikpapan,Indonesia,Gopalpur,2453
+Balikpapan,Indonesia,Dhamra,2581
+Balikpapan,Indonesia,Sagar-Sandheads,2759
+Balikpapan,Indonesia,Haldia,2840
