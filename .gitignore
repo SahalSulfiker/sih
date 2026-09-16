@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 node_modules
 .next
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
