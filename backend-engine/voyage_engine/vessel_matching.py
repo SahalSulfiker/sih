@@ -1,4 +1,8 @@
+import os
+
 import pandas as pd
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 
 def check_vessel_compatibility(
@@ -121,10 +125,10 @@ def find_compatible_vessels(
 if __name__ == "__main__":
 
    
-    vessels = pd.read_csv("Data/vessel_types.csv")
-    origins = pd.read_csv("Data/origin_ports.csv")
-    destinations = pd.read_csv("Data/destination_ports.csv")
-    requests = pd.read_csv("Data/sample_cargo_requests.csv")
+    vessels = pd.read_csv(os.path.join(DATA_DIR, "vessel_types.csv"))
+    origins = pd.read_csv(os.path.join(DATA_DIR, "origin_ports.csv"))
+    destinations = pd.read_csv(os.path.join(DATA_DIR, "destination_ports.csv"))
+    requests = pd.read_csv(os.path.join(DATA_DIR, "sample_cargo_requests.csv"))
 
     request = requests.iloc[0]
 

@@ -1,159 +1,239 @@
-import pandas as pd
+import os
+
 import numpy as np
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import pandas as pd
 import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+from voyage_engine import port_ranking, vessel_scoring
+from voyage_engine.data_loader import load_data as load_voyage_data
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-df = pd.read_csv("data/Baltic Dry Index Historical Data.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ---------------------------------------------------------------------------
+# Market data (Baltic Dry Index) — drives the forecast + charter-strategy
+# timing logic. Unchanged from the original backend-engine implementation.
+# ---------------------------------------------------------------------------
+df = pd.read_csv(os.path.join(BASE_DIR, "data", "Baltic Dry Index Historical Data.csv"))
 df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y")
 df["Price"] = df["Price"].astype(str).str.replace(",", "").astype(float)
 df = df.sort_values("Date").reset_index(drop=True)
 
-port_infra = pd.read_csv("data/ports_infra.csv")
-full_fleet = pd.read_csv("data/vessel_fleet.csv")
+# ---------------------------------------------------------------------------
+# Voyage engine data (vessel types, ports, distances, freight rates) — this
+# is the dataset + logic contributed on the shair-backend branch. It powers
+# vessel matching/scoring and port ranking, which used to be flat estimates.
+# ---------------------------------------------------------------------------
+_voyage_data = load_voyage_data()
+VESSELS = _voyage_data["vessels"]
+ORIGINS = _voyage_data["origins"]
+DESTINATIONS = _voyage_data["destinations"]
+DISTANCES = _voyage_data["distances"]
+FREIGHT = _voyage_data["freight"]
+
+USD_TO_INR = 83.0  # approximate, used only to express voyage cost in Cr (INR crore) for the frontend contract
+
+# ---------------------------------------------------------------------------
+# Mapping between the frontend's AnalyzeRequest contract (src/types/analysis.ts)
+# and the voyage_engine dataset's naming.
+#
+# AnalyzeRequest.origin is only "australia" | "other" (no specific port), so
+# we pick one representative origin port per bucket. Adjust these if you want
+# a different default origin.
+# ---------------------------------------------------------------------------
+ORIGIN_PORT_BY_REQUEST_ORIGIN = {
+    "australia": "Gladstone",
+    "other": "New Orleans",
+}
+ORIGIN_COUNTRY_BY_PORT = {
+    "Gladstone": "Australia",
+    "New Orleans": "USA",
+}
+
+DESTINATION_PORT_MAP = {
+    "paradip": "Paradip",
+    "gangavaram": "Gangavaram",
+    "haldia": "Haldia",
+    "dhamra": "Dhamra",
+    "vizag": "Visakhapatnam",
+}
+DESTINATION_PORT_MAP_REVERSE = {v: k for k, v in DESTINATION_PORT_MAP.items()}
+CANDIDATE_DESTINATIONS = list(DESTINATION_PORT_MAP.values())
 
 
-def rank_vessels(port_row, cargo_quantity, vessel_df):
-    results = []
-    for _, v in vessel_df.iterrows():
-        fits_draft = v["draft_m"] <= port_row["max_draft_m"]
-        fits_length = v["length"] <= port_row["max_loa_m"]
-        fits_cargo = v["dwt"] >= cargo_quantity
-
-        if fits_draft and fits_length and fits_cargo:
-            utilization = cargo_quantity / v["dwt"]
-            score = round(utilization * 100)
-            reason = f"Fits port limits, {round(utilization*100)}% cargo utilization"
-        else:
-            score = 0
-            reasons = []
-            if not fits_draft: reasons.append("exceeds port draft limit")
-            if not fits_length: reasons.append("exceeds port berth length")
-            if not fits_cargo: reasons.append("too small for cargo quantity")
-            reason = ", ".join(reasons)
-
-        results.append({
-            "vessel": v["Company_Name"],
-            "type": v["ship_name"],
-            "dwt": v["dwt"],
-            "score": score,
-            "reason": reason,
-            "recommended": False
+# ---------------------------------------------------------------------------
+# Forecast (BDI-based) — unchanged model, extended with the fields the
+# frontend contract requires that the original implementation was missing
+# (unit, confidence_score, recommendation).
+# ---------------------------------------------------------------------------
+def build_forecast(latest_bdi_price, bdi_forecast):
+    forecast_points = []
+    for i, row in bdi_forecast.reset_index(drop=True).iterrows():
+        predicted = float(row["Predicted_BDI"])
+        forecast_points.append({
+            "days_ahead": i + 1,
+            "predicted_rate": round(predicted, 2),
+            "confidence_low": round(predicted * 0.95, 2),
+            "confidence_high": round(predicted * 1.05, 2),
         })
 
-    results_df = pd.DataFrame(results).sort_values("score", ascending=False).reset_index(drop=True)
-    if len(results_df) > 0 and results_df.iloc[0]["score"] > 0:
-        results_df.loc[0, "recommended"] = True
-    return results_df.head(6)
+    last_predicted = bdi_forecast["Predicted_BDI"].iloc[-1]
+    forecast_change_pct = abs((last_predicted - latest_bdi_price) / latest_bdi_price * 100)
+    trend_direction = "decreasing" if last_predicted < latest_bdi_price else "increasing"
+    confidence_score = round(max(50, 100 - forecast_change_pct * 2))
+    recommendation = "wait_10_to_14_days" if trend_direction == "decreasing" else "book_now"
+
+    forecast = {
+        "current_rate": float(latest_bdi_price),
+        "unit": "BDI points",
+        "forecast": forecast_points,
+        "trend": trend_direction,
+        "confidence_score": confidence_score,
+        "recommendation": recommendation,
+    }
+    return forecast, trend_direction, forecast_change_pct
 
 
-def compare_ports(vessel_dwt, cargo_quantity, latest_bdi_price, ports_df):
-    results = []
-    freight_rate_per_mt = latest_bdi_price * 0.005
-    for _, port in ports_df.iterrows():
-        handling_cost_per_mt = 500 - (port["berths"] * 10)
-        expected_wait_hours = max(0, 40 - (port["berths"] * 1.5))
-        waiting_cost = expected_wait_hours * 5000
-        freight_cost = freight_rate_per_mt * cargo_quantity
-        total_cost = freight_cost + (handling_cost_per_mt * cargo_quantity) + waiting_cost
-        results.append({
-            "port": port["port_name"],
-            "total_cost_cr": round(total_cost / 1e7, 2),
-            "waiting_hours": round(expected_wait_hours, 1),
-            "risk": "low" if expected_wait_hours < 20 else "moderate",
-            "recommended": False
+# ---------------------------------------------------------------------------
+# Vessel recommendations — powered by voyage_engine.vessel_scoring, which
+# checks real draft/LOA/beam compatibility and scores on cost, capacity
+# utilization, voyage time and port fit (replaces the old flat estimate).
+# ---------------------------------------------------------------------------
+def rank_vessels(quantity_mt, origin_port, origin_country, destination_port):
+    request = {
+        "request_id": "live-request",
+        "origin_port": origin_port,
+        "origin_country": origin_country,
+        "destination_port": destination_port,
+        "quantity_tonnes": quantity_mt,
+    }
+    return vessel_scoring.rank_vessels(request, VESSELS, ORIGINS, DESTINATIONS, DISTANCES, FREIGHT)
+
+
+def to_vessel_recommendations(ranked_result):
+    if not ranked_result.get("success"):
+        return [], None
+    entries = []
+    for i, v in enumerate(ranked_result["ranked_vessels"]):
+        entries.append({
+            "vessel_type": v["vessel_type"].lower(),
+            "score": round(v["final_score"]),
+            "reason": (
+                f"{v['capacity_utilization_percent']}% cargo utilization, "
+                f"{v['voyage_days']} day voyage, port fit {round(v['port_fit_score'])}/100"
+            ),
+            "recommended": i == 0,
+            "capacity_mt": float(v["dwt_max"]),
+            "utilization_pct": v["capacity_utilization_percent"],
+            "draft_compatible": True,
         })
-    results_df = pd.DataFrame(results).sort_values("total_cost_cr").reset_index(drop=True)
-    results_df.loc[0, "recommended"] = True
-    return results_df
+    top_vessel_type = ranked_result["ranked_vessels"][0]["vessel_type"] if entries else None
+    return entries, top_vessel_type
 
 
-def compare_charter_strategy(cargo_quantity, latest_bdi_price, forecast_df):
-    forecast_trend = forecast_df["Predicted_BDI"].iloc[-1] - forecast_df["Predicted_BDI"].iloc[0]
-    trend_direction = "decreasing" if forecast_trend < 0 else "increasing"
+# ---------------------------------------------------------------------------
+# Port comparison — powered by voyage_engine.port_ranking, which computes
+# real distance/bunker/handling/waiting cost per candidate port instead of
+# the old flat formula. Cost is converted from USD to Cr (INR crore) to
+# match the contract's unit.
+# ---------------------------------------------------------------------------
+def compare_ports(vessel_type, cargo_quantity, origin_port):
+    return port_ranking.rank_ports(
+        vessel_type=vessel_type,
+        cargo_quantity=cargo_quantity,
+        origin_port=origin_port,
+        candidate_ports=CANDIDATE_DESTINATIONS,
+        vessels=VESSELS,
+        destinations=DESTINATIONS,
+        distances=DISTANCES,
+        freight_rates=FREIGHT,
+    )
 
-    spot_rate = latest_bdi_price * 0.005
-    spot_cost = spot_rate * cargo_quantity
 
+def to_port_comparison(port_result):
+    if not port_result.get("success") or not port_result["ranked_ports"]:
+        return []
+    entries = []
+    for p in port_result["ranked_ports"]:
+        total_cost_cr = round((p["total_cost_usd"] * USD_TO_INR) / 1e7, 2)
+        waiting_hours = round(p["waiting_days"] * 24, 1)
+        risk = "low" if waiting_hours < 48 else "moderate" if waiting_hours < 96 else "high"
+        entries.append({
+            "port": DESTINATION_PORT_MAP_REVERSE[p["port"]],
+            "total_cost_cr": total_cost_cr,
+            "waiting_hours": waiting_hours,
+            "risk": risk,
+            "recommended": p["rank"] == 1,
+        })
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Charter strategy — same spot/3-month/6-month MVC model as the original
+# implementation, now based on the best port's real voyage cost instead of
+# a flat BDI multiplier.
+# ---------------------------------------------------------------------------
+def build_charter_strategy(best_port_cost_cr, trend_direction):
     if trend_direction == "decreasing":
-        mvc_3_rate = spot_rate * 0.93
-        mvc_6_rate = spot_rate * 0.90
+        mvc_3_multiplier, mvc_6_multiplier = 0.93, 0.90
     else:
-        mvc_3_rate = spot_rate * 0.97
-        mvc_6_rate = spot_rate * 0.95
+        mvc_3_multiplier, mvc_6_multiplier = 0.97, 0.95
 
-    mvc_3_cost = mvc_3_rate * cargo_quantity
-    mvc_6_cost = mvc_6_rate * cargo_quantity
+    costs = {
+        "spot": best_port_cost_cr,
+        "3_month_mvc": round(best_port_cost_cr * mvc_3_multiplier, 2),
+        "6_month_mvc": round(best_port_cost_cr * mvc_6_multiplier, 2),
+    }
+    best_type = min(costs, key=costs.get)
 
-    results = pd.DataFrame({
-        "type": ["spot", "3_month_mvc", "6_month_mvc"],
-        "estimated_cost_cr": [round(spot_cost/1e7, 2), round(mvc_3_cost/1e7, 2), round(mvc_6_cost/1e7, 2)],
-        "recommended": [False, False, False]
-    })
-    best_idx = results["estimated_cost_cr"].idxmin()
-    results.loc[best_idx, "recommended"] = True
-    return results, trend_direction
+    strategy = [
+        {"type": t, "estimated_cost_cr": costs[t], "recommended": t == best_type}
+        for t in ("spot", "3_month_mvc", "6_month_mvc")
+    ]
+    return strategy, costs, best_type
 
 
-def calculate_risk_and_idle(port_row, waiting_hours, bdi_forecast, latest_bdi_price):
-    forecast_change_pct = abs((bdi_forecast["Predicted_BDI"].iloc[-1] - latest_bdi_price) / latest_bdi_price * 100)
+# ---------------------------------------------------------------------------
+# Risk assessment — combines BDI volatility with the real port congestion
+# figure now available from the port ranking result.
+# ---------------------------------------------------------------------------
+def build_risk(waiting_hours, forecast_change_pct):
+    port_congestion_score = round(min(100, (waiting_hours / 96) * 100))
+    congestion_level = "low" if port_congestion_score < 30 else "moderate" if port_congestion_score < 60 else "high"
+
     volatility_score = min(50, forecast_change_pct * 2)
-    congestion_score = min(50, waiting_hours * 1.2)
-
-    risk_score = round(volatility_score + congestion_score)
+    congestion_component = min(50, port_congestion_score / 2)
+    risk_score = round(volatility_score + congestion_component)
     risk_level = "low" if risk_score < 30 else "moderate" if risk_score < 60 else "high"
 
     risk_factors = []
     if volatility_score > 20:
-        risk_factors.append("Freight volatility elevated over forecast period")
-    if congestion_score > 20:
+        risk_factors.append("Freight volatility elevated over the forecast period")
+    if congestion_component > 20:
         risk_factors.append("Port congestion moderate to high, longer waiting expected")
     if not risk_factors:
         risk_factors.append("Market conditions currently stable")
 
-    idle_time_predicted = waiting_hours > 25
+    idle_time_predicted = waiting_hours > 72
     idle_time_suggestion = (
-        "Consider alternative cargo on return leg or repositioning to reduce deadheading losses"
+        "Consider alternative cargo on the return leg or repositioning to reduce deadheading losses"
         if idle_time_predicted else None
     )
 
     return {
+        "port_congestion_score": port_congestion_score,
+        "congestion_level": congestion_level,
+        "expected_waiting_hours": waiting_hours,
         "risk_score": risk_score,
         "risk_level": risk_level,
         "risk_factors": risk_factors,
         "idle_time_predicted": bool(idle_time_predicted),
-        "idle_time_suggestion": idle_time_suggestion
+        "idle_time_suggestion": idle_time_suggestion,
     }
-
-
-def build_final_summary(port_comparison, ranking, charter_strategy, risk_result, bdi_forecast, latest_bdi_price):
-    best_port = port_comparison.iloc[0]
-    best_vessel = ranking.iloc[0]
-
-    trend = "decreasing" if bdi_forecast["Predicted_BDI"].iloc[-1] < latest_bdi_price else "increasing"
-    cost_multiplier = {"spot": 1.0, "3_month_mvc": 0.93, "6_month_mvc": 0.90} if trend == "decreasing" \
-        else {"spot": 1.0, "3_month_mvc": 0.97, "6_month_mvc": 0.95}
-
-    contract_costs = {k: round(best_port["total_cost_cr"] * v, 2) for k, v in cost_multiplier.items()}
-    best_contract_type = min(contract_costs, key=contract_costs.get)
-
-    market_entry_advice = "wait_7_to_14_days" if trend == "decreasing" else "book_now"
-    savings = round(contract_costs["spot"] - contract_costs[best_contract_type], 2)
-
-    summary = {
-        "recommended_vessel": best_vessel["vessel"],
-        "recommended_port": best_port["port"],
-        "recommended_contract": best_contract_type,
-        "market_entry_advice": market_entry_advice,
-        "estimated_total_cost_cr": contract_costs[best_contract_type],
-        "estimated_savings_cr": savings,
-        "risk_score": risk_result["risk_score"],
-        "risk_level": risk_result["risk_level"]
-    }
-    return summary, contract_costs
 
 
 def clean_for_json(obj):
@@ -174,43 +254,61 @@ def clean_for_json(obj):
 
 
 def analyze_request(cargo_type, quantity_mt, origin, destination_port, required_date, contract_preference):
+    if origin not in ORIGIN_PORT_BY_REQUEST_ORIGIN:
+        raise HTTPException(status_code=400, detail=f"Unknown origin '{origin}'.")
+    if destination_port not in DESTINATION_PORT_MAP:
+        raise HTTPException(status_code=400, detail=f"Unknown destination_port '{destination_port}'.")
+    if not quantity_mt or quantity_mt <= 0:
+        raise HTTPException(status_code=400, detail="quantity_mt must be greater than zero.")
+
+    origin_port = ORIGIN_PORT_BY_REQUEST_ORIGIN[origin]
+    origin_country = ORIGIN_COUNTRY_BY_PORT[origin_port]
+    dest_port_name = DESTINATION_PORT_MAP[destination_port]
+
     latest_bdi_price = df["Price"].iloc[-1]
-    bdi_forecast = pd.read_csv("data/bdi_7_day_forecast.csv")
+    bdi_forecast = pd.read_csv(os.path.join(BASE_DIR, "data", "bdi_7_day_forecast.csv"))
+    forecast, trend_direction, forecast_change_pct = build_forecast(latest_bdi_price, bdi_forecast)
 
-    port_row = port_infra[port_infra["port_name"] == destination_port].iloc[0]
-    ranking = rank_vessels(port_row, quantity_mt, full_fleet)
+    vessel_ranking_result = rank_vessels(quantity_mt, origin_port, origin_country, dest_port_name)
+    vessel_recommendations, top_vessel_type = to_vessel_recommendations(vessel_ranking_result)
+    if not vessel_recommendations:
+        raise HTTPException(
+            status_code=422,
+            detail=vessel_ranking_result.get("error", "No compatible vessels found for this request."),
+        )
 
-    port_comparison = compare_ports(quantity_mt, quantity_mt, latest_bdi_price, port_infra)
+    port_result = compare_ports(top_vessel_type, quantity_mt, origin_port)
+    port_comparison = to_port_comparison(port_result)
+    if not port_comparison:
+        raise HTTPException(
+            status_code=422,
+            detail=port_result.get("error", "No viable ports found for this request."),
+        )
 
-    charter_strategy, trend = compare_charter_strategy(quantity_mt, latest_bdi_price, bdi_forecast)
+    best_port = next(p for p in port_comparison if p["recommended"])
+    charter_strategy, contract_costs, best_contract_type = build_charter_strategy(
+        best_port["total_cost_cr"], trend_direction
+    )
+    risk_result = build_risk(best_port["waiting_hours"], forecast_change_pct)
 
-    best_port_row_for_risk = port_comparison.iloc[0]
-    port_infra_row = port_infra[port_infra["port_name"] == best_port_row_for_risk["port"]].iloc[0]
-    risk_result = calculate_risk_and_idle(port_infra_row, best_port_row_for_risk["waiting_hours"], bdi_forecast, latest_bdi_price)
-
-    final_summary, reconciled_costs = build_final_summary(port_comparison, ranking, charter_strategy, risk_result, bdi_forecast, latest_bdi_price)
-
-    forecast_output = {
-        "current_rate": float(latest_bdi_price),
-        "forecast": bdi_forecast.to_dict(orient="records"),
-        "trend": trend
+    savings = round(contract_costs["spot"] - contract_costs[best_contract_type], 2)
+    summary = {
+        "recommended_vessel": vessel_recommendations[0]["vessel_type"],
+        "recommended_port": best_port["port"],
+        "recommended_contract": best_contract_type,
+        "market_entry_advice": forecast["recommendation"],
+        "estimated_total_cost_cr": contract_costs[best_contract_type],
+        "estimated_savings_cr": savings,
+        "risk_score": risk_result["risk_score"],
     }
 
     response = {
-        "input": {
-            "cargo_type": cargo_type,
-            "quantity_mt": quantity_mt,
-            "origin": origin,
-            "destination_port": destination_port,
-            "required_date": required_date,
-            "contract_preference": contract_preference
-        },
-        "forecast": forecast_output,
-        "vessel_recommendations": ranking.to_dict(orient="records"),
-        "port_comparison": port_comparison.to_dict(orient="records"),
-        "charter_strategy": charter_strategy.to_dict(orient="records"),
+        "forecast": forecast,
+        "vessel_recommendations": vessel_recommendations,
+        "port_comparison": port_comparison,
+        "charter_strategy": charter_strategy,
         "risk": risk_result,
-        "summary": final_summary
+        "summary": summary,
     }
     return clean_for_json(response)
 
@@ -223,7 +321,7 @@ def analyze(request: dict):
         request["origin"],
         request["destination_port"],
         request["required_date"],
-        request["contract_preference"]
+        request["contract_preference"],
     )
 
 

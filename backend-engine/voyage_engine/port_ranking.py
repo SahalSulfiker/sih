@@ -1,4 +1,8 @@
+import os
+
 import pandas as pd
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 FUEL_CONSUMPTION = {
     "Handysize": 24.75,
@@ -126,10 +130,10 @@ def rank_ports(
 
 
 if __name__ == "__main__":
-    vessels = pd.read_csv("Data/vessel_types.csv")
-    destinations = pd.read_csv("Data/destination_ports.csv")
-    distances = pd.read_csv("Data/distance_matrix.csv")
-    freight_rates = pd.read_csv("Data/historical_freight_rates.csv")
+    vessels = pd.read_csv(os.path.join(DATA_DIR, "vessel_types.csv"))
+    destinations = pd.read_csv(os.path.join(DATA_DIR, "destination_ports.csv"))
+    distances = pd.read_csv(os.path.join(DATA_DIR, "distance_matrix.csv"))
+    freight_rates = pd.read_csv(os.path.join(DATA_DIR, "historical_freight_rates.csv"))
 
     result = rank_ports(
         vessel_type="Supramax",

@@ -1,5 +1,13 @@
+import os
+
 import pandas as pd
-from vessel_matching import find_compatible_vessels
+
+try:
+    from .vessel_matching import find_compatible_vessels
+except ImportError:  # allows running this file directly as a script
+    from vessel_matching import find_compatible_vessels
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 
 FUEL_CONSUMPTION = {
@@ -222,12 +230,12 @@ def rank_vessels(request, vessels, origins, destinations, distances, freight):
 
 
 if __name__ == "__main__":
-    vessels = pd.read_csv("Data/vessel_types.csv")
-    origins = pd.read_csv("Data/origin_ports.csv")
-    destinations = pd.read_csv("Data/destination_ports.csv")
-    distances = pd.read_csv("Data/distance_matrix.csv")
-    freight = pd.read_csv("Data/historical_freight_rates.csv")
-    requests = pd.read_csv("Data/sample_cargo_requests.csv")
+    vessels = pd.read_csv(os.path.join(DATA_DIR, "vessel_types.csv"))
+    origins = pd.read_csv(os.path.join(DATA_DIR, "origin_ports.csv"))
+    destinations = pd.read_csv(os.path.join(DATA_DIR, "destination_ports.csv"))
+    distances = pd.read_csv(os.path.join(DATA_DIR, "distance_matrix.csv"))
+    freight = pd.read_csv(os.path.join(DATA_DIR, "historical_freight_rates.csv"))
+    requests = pd.read_csv(os.path.join(DATA_DIR, "sample_cargo_requests.csv"))
 
     request = requests.iloc[0]
 
